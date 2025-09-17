@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bulk Import Mapping Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .info { background-color: #d1ecf1; border-color: #bee5eb; }
+        pre { background-color: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>Bulk Import Mapping Test</h1>
+    
+    <div class="test-section info">
+        <h3>Test Headers (from your Excel file)</h3>
+        <pre>['Roll. No', 'Student Name', 'Quota', 'Gender', 'Aadhaar', 'Student Mobile', 'Father Mobile', 'Father Name', 'Mother Name', 'Permanent Address']</pre>
+    </div>
+
+    <div class="test-section">
+        <h3>Mapping Logic Test</h3>
+        <button onclick="runMappingTest()">Run Test</button>
+        <div id="testResults"></div>
+    </div>
+
+    <script>
+        function runMappingTest() {
+            const testHeaders = [
+                'Roll. No',
+                'Student Name', 
+                'Quota',
+                'Gender',
+                'Aadhaar',
+                'Student Mobile',
+                'Father Mobile',
+                'Father Name',
+                'Mother Name',
+                'Permanent Address'
+            ];
+
+            const variations = {
+                // Admission Number variations - more comprehensive
+                'admissionnumber': 'admissionNumber',
+                'admissionno': 'admissionNumber',
+                'admission': 'admissionNumber',
+                'rollno': 'admissionNumber',
+                'rollnumber': 'admissionNumber',
+                'roll': 'admissionNumber',
+                'roll.': 'admissionNumber',
+                'roll no': 'admissionNumber',
+                'roll number': 'admissionNumber',
+                'rollno.': 'admissionNumber',
+                'roll.number': 'admissionNumber',
+                'regno': 'admissionNumber',
+                'registration': 'admissionNumber',
+                'studentid': 'admissionNumber',
+                'id': 'admissionNumber',
+                'student_id': 'admissionNumber',
+                
+                // Name variations
+                'fullname': 'name',
+                'studentname': 'name',
+                'student_name': 'name',
+                'name': 'name',
+                'student': 'name',
+                'candidate': 'name',
+                'student name': 'name',
+                
+                // Mobile variations
+                'mobilenumber': 'studentMobile',
+                'mobile': 'studentMobile',
+                'phone': 'studentMobile',
+                'contact': 'studentMobile',
+                'phonenumber': 'studentMobile',
+                'cell': 'studentMobile',
+                'student mobile': 'studentMobile',
+                'studentmobile': 'studentMobile',
+                
+                // Gender variations
+                'gender': 'gender',
+                'sex': 'gender',
+                
+                // Father's name variations
+                'fathername': 'fatherName',
+                'father_name': 'fatherName',
+                'father': 'fatherName',
+                'fathersname': 'fatherName',
+                'father name': 'fatherName',
+                
+                // Father's mobile variations
+                'fathermobile': 'fatherMobile',
+                'father_mobile': 'fatherMobile',
+                'fatherphone': 'fatherMobile',
+                'father_phone': 'fatherMobile',
+                'father mobile': 'fatherMobile',
+                
+                // Mother's name variations
+                'mothername': 'motherName',
+                'mother_name': 'motherName',
+                'mother': 'motherName',
+                'mothersname': 'motherName',
+                'mother name': 'motherName',
+                
+                // Address variations
+                'address': 'address',
+                'addr': 'address',
+                'location': 'address',
+                'permanentaddress': 'address',
+                'permanent_address': 'address',
+                'permanent address': 'address',
+                
+                // Aadhaar variations
+                'aadhaar': 'aadhaar',
+                'aadhar': 'aadhaar',
+                'aadhaarnumber': 'aadhaar',
+                'aadharno': 'aadhaar',
+                
+                // Quota variations
+                'quota': 'quota',
+                'category': 'quota',
+                'reservation': 'quota'
+            };
+
+            const autoMapping = {};
+            const results = [];
+            
+            testHeaders.forEach((header, index) => {
+                if (!header) return;
+                
+                const cleanHeader = header.toString().toLowerCase().replace(/[^a-z0-9]/g, '');
+                const originalHeader = header.toString().toLowerCase();
+                const spaceCleanedHeader = originalHeader.replace(/\s+/g, '');
+                
+                results.push(`Processing: "${header}"`);
+                results.push(`  Cleaned: "${cleanHeader}"`);
+                results.push(`  Space-cleaned: "${spaceCleanedHeader}"`);
+                
+                // Try exact match first
+                if (variations[cleanHeader]) {
+                    autoMapping[variations[cleanHeader]] = index;
+                    results.push(`  ✅ EXACT MATCH: "${header}" → "${variations[cleanHeader]}"`);
+                    return;
+                }
+                
+                // Try space-cleaned match
+                if (variations[spaceCleanedHeader]) {
+                    autoMapping[variations[spaceCleanedHeader]] = index;
+                    results.push(`  ✅ SPACE MATCH: "${header}" → "${variations[spaceCleanedHeader]}"`);
+                    return;
+                }
+                
+                // Try partial match
+                for (const [key, fieldName] of Object.entries(variations)) {
+                    if (cleanHeader.includes(key) || key.includes(cleanHeader)) {
+                        autoMapping[fieldName] = index;
+                        results.push(`  ✅ PARTIAL MATCH: "${header}" → "${fieldName}" (key: "${key}")`);
+                        break;
+                    }
+                }
+                
+                if (!Object.values(autoMapping).includes(index)) {
+                    results.push(`  ❌ NO MATCH FOUND for "${header}"`);
+                }
+            });
+
+            // Check required fields
+            const requiredFields = ['admissionNumber', 'name'];
+            const missingFields = requiredFields.filter(field => !autoMapping[field]);
+            
+            results.push('');
+            results.push('📋 Final Mapping:');
+            results.push(JSON.stringify(autoMapping, null, 2));
+            
+            if (missingFields.length > 0) {
+                results.push(`❌ Missing required fields: ${missingFields.join(', ')}`);
+            } else {
+                results.push('✅ All required fields mapped!');
+            }
+
+            document.getElementById('testResults').innerHTML = 
+                `<pre>${results.join('\n')}</pre>`;
+        }
+    </script>
+</body>
+</html>
